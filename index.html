@@ -1,0 +1,1933 @@
+
+Claude finished the response
+
+index (6).html
+html
+
+my ai feedback for interview not working fix it
+
+11:43 AM
+
+Viewed 2 files
+Viewed 2 files
+The issue is clear. The callClaude function is making a direct call to https://api.anthropic.com/v1/messages from the browser, but it's missing the required anthropic-version header AND there's no x-api-key header (the API key needs to be included for browser-side calls). The Anthropic API also requires anthropic-dangerous-direct-browser-access: true for direct browser calls.
+
+Let me fix this:
+
+
+Ran a command, edited a file, read a file
+Ran a command, edited a file, read a file
+Fixed! Two issues were in the callClaude function:
+
+Missing anthropic-version header — this is required for every API call or it returns a 400 error.
+Missing anthropic-dangerous-direct-browser-access: true header — required when calling the Anthropic API directly from a browser (instead of a server).
+Better error messages — now extracts the actual error text from the API response instead of just showing the status code.
+The AI feedback should now work when you toggle "AI Coach: ON" and submit an answer.
+
+
+Index
+Code · HTML 
+so thi sis dangerwous browser accesss
+
+11:46 AM
+Yes, exactly. Calling the Anthropic API directly from the browser means your API key is exposed to anyone who opens DevTools — they can see it, copy it, and use it at your expense.
+
+The right fix is a backend proxy — your browser calls your own server, your server calls Anthropic with the key stored safely as an environment variable, and the key never reaches the client.
+
+A simple Node/Express proxy looks like this:
+
+js
+app.post('/api/feedback', async (req, res) => {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': process.env.ANTHROPIC_API_KEY  // never leaves the server
+    },
+    body: JSON.stringify(req.body)
+  });
+  const data = await response.json();
+  res.json(data);
+});
+Then in your HTML, just change the fetch URL from https://api.anthropic.com/v1/messages to /api/feedback and remove the dangerous-browser-access header.
+
+For quick deployment, Vercel or Netlify serverless functions work great for this — no full server needed, and you store the key as an environment variable in their dashboard.
+
+Want me to build out the full proxy setup for you?
+
+how to fix it
+
+11:47 AM
+The safest fix is to deploy a simple backend proxy. Here's the quickest way using Vercel (free):
+
+1. Create this folder structure:
+
+my-app/
+├── api/
+│   └── feedback.js   ← serverless function
+├── public/
+│   └── index.html    ← your existing file
+└── package.json
+2. api/feedback.js
+
+js
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': process.env.ANTHROPIC_API_KEY
+    },
+    body: JSON.stringify(req.body)
+  });
+
+  const data = await response.json();
+  res.status(response.status).json(data);
+}
+3. package.json
+
+json
+{ "name": "abap-coach", "version": "1.0.0" }
+4. In your index.html, change the fetch URL:
+
+js
+// Change this line in callClaude():
+const resp = await fetch("/api/feedback", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ ... })
+});
+Remove the anthropic-version and anthropic-dangerous-direct-browser-access headers from the browser call — the proxy handles those.
+
+5. Deploy:
+
+bash
+npm i -g vercel
+vercel
+Then in your Vercel dashboard → Project → Settings → Environment Variables, add:
+
+ANTHROPIC_API_KEY = sk-ant-...
+Redeploy once and your key is safe. Want me to update your index.html with the new fetch URL already changed?
+
+see me ekdam non it se hu simple me samjahho
+
+11:51 AM
+Bilkul simple mein samjhao! 😄
+
+Problem kya hai?
+
+Abhi tera API key HTML file ke andar hai — jo bhi teri website khole, wo DevTools mein jaake tera secret key dekh sakta hai aur use kar sakta hai. Tera bill aayega, uska kaam hoga. 😅
+
+Fix kya hai?
+
+Ek middleman banana hai:
+
+Browser → Tera Server → Anthropic
+Browser ko key dikhti hi nahi — sirf tera server ke paas hogi.
+
+Sabse aasaan tarika — Vercel (free hai)
+
+Account bana → vercel.com (free)
+Ek folder bana aur iske andar yeh files daal:
+public/index.html → teri existing file
+api/feedback.js → naya middleman file
+api/feedback.js mein yeh likh:
+js
+export default async function handler(req, res) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': process.env.ANTHROPIC_API_KEY  // key yahan safe hai
+    },
+    body: JSON.stringify(req.body)
+  });
+  const data = await response.json();
+  res.status(response.status).json(data);
+}
+Vercel dashboard mein API key daal do: Settings → Environment Variables → ANTHROPIC_API_KEY = sk-ant-...
+HTML mein sirf ek line badlo:
+js
+// Pehle tha:
+fetch("https://api.anthropic.com/v1/messages", ...)
+
+// Ab kar:
+fetch("/api/feedback", ...)
+Bas! 🎉 Key safe, kaam same. Karun updated HTML file ready?
+
+isko jo html download karu ki nhi abhi jo tune diya he ai coch
+
+11:54 AM
+Abhi jo maine diya hai usme API key exposed hai — agar koi bhi tera HTML download kare ya DevTools khole, key dikh jayegi.
+
+Toh depends karta hai:
+
+✅ Download kar sakta hai agar...
+
+Sirf apne liye use kar raha hai (koi aur use nahi karega)
+Key ka thoda usage chalega tujhe
+Ye testing/practice ke liye hai
+❌ Download mat kar agar...
+
+Doosron ko share karna hai ya website pe dalni hai
+Public access milega kisi ko bhi
+Meri suggestion:
+
+Abhi ke liye apne liye use karna hai toh kar le download — but key ka dhyan rakh, Anthropic dashboard pe usage limit laga de taaki bill na aaye.
+
+Baad mein Vercel wala setup karein toh properly safe ho jayega.
+
+Karna hai limit set? Woh bhi bata deta hun kaise karte hain. 😊
+
+mujhe live project lnkdln github me dene he na??
+
+11:55 AM
+Toh phir bilkul mat kar download abhi wali file ka! 🚫
+
+LinkedIn/GitHub pe daalne ka matlab poori duniya dekh sakti hai tera API key — koi bhi utha ke use kar lega, tera account drain ho jayega.
+
+Sahi order yeh hai:
+
+Pehle Vercel wala setup kar (proxy wala)
+Phir GitHub pe daal code (key ENV variable mein hogi, file mein nahi)
+Phir LinkedIn pe share kar Vercel ka live link
+Kya chahiye tujhe?
+
+Bol de, main ready kar deta hun:
+
+✅ Updated index.html (fetch URL badla hua)
+✅ api/feedback.js file
+✅ package.json
+✅ Step-by-step GitHub → Vercel deploy guide
+Sab ready milega, bas upload karna hoga tujhe. Karun? 🚀
+
+proxy kya
+
+11:55 AM
+Proxy = Middleman 🧑‍💼
+
+Simple example se samajh:
+
+Bina proxy (abhi tera setup):
+
+Tu → Anthropic directly
+     (API key dikhti hai sabko)
+Proxy ke saath:
+
+Tu → Tera Middleman → Anthropic
+     (key sirf middleman ke paas)
+Real life example:
+
+Socha aise — tu ek celebrity hai, seedha apna number nahi deta kisi ko. Tera manager (proxy) sab calls handle karta hai. Logo ko manager ka number milta hai, tera personal number safe rehta hai. 😄
+
+Teri case mein:
+
+Tera HTML = tu (browser)
+Vercel function = manager (proxy)
+Anthropic API key = tera personal number (safe!)
+Browser ko key kabhi dikhti hi nahi — sirf Vercel ke server ko pata hai. Aur Vercel ka server public nahi hota.
+
+Simple hai na? Banao proxy wala setup? 🚀
+
+to log use kese krenge dekheneg
+
+11:57 AM
+Great question! 🎯
+
+Jab tu Vercel pe deploy karega:
+
+Vercel ek live link deta hai jaise:
+
+https://abap-coach.vercel.app
+Log aise use karenge:
+
+User ka browser → abap-coach.vercel.app → Vercel server → Anthropic
+User sirf website kholega browser mein
+Usse kuch nahi pata andar kya chal raha
+API key Vercel ke server mein chupi hai
+User ko bas AI feedback milti hai ✅
+LinkedIn/GitHub pe share karega toh:
+
+LinkedIn pe → live link share kar abap-coach.vercel.app
+GitHub pe → code daal (key nahi hogi code mein, sirf Vercel ke dashboard mein hogi)
+Ek cheez dhyan rakh ⚠️
+
+Agar bahut saare log use karein toh tera Anthropic bill badh sakta hai — kyunki API key teri hai, cost teri hogi.
+
+Iske liye baad mein login system ya rate limiting lagana padega.
+
+Abhi ke liye portfolio/LinkedIn ke liye theek hai — setup karun? 🚀
+
+project ese hota he na
+
+11:58 AM
+Haan! Bilkul sahi samjha! 🎯
+
+Yehi hota hai ek proper project:
+
+Code (GitHub) → Deploy (Vercel) → Live Link → Share (LinkedIn)
+Tera ABAP Coach project bhi aisa hi hoga:
+
+Cheez	Kya hoga
+GitHub	Code pada hoga (safe, no key)
+Vercel	Live website + API key safe
+LinkedIn	Live link share karega
+Recruiter	Click karega, use karega ✅
+Recruiter sochega:
+
+"Yeh banda AI integrate karna jaanta hai, deploy karna jaanta hai, proper project banana jaanta hai" 💪
+
+Toh ab ek kaam kar —
+
+Banao sab ready?
+
+Main de deta hun:
+
+✅ Updated index.html
+✅ api/feedback.js
+✅ package.json
+✅ GitHub pe kaise daale
+✅ Vercel pe kaise deploy kare
+Bol haan toh shuru karte hain! 🚀
+
+recruitre linkdeln se use krega kay
+
+11:59 AM
+Nahi! 😄
+
+LinkedIn pe recruiter live link dekhega — click karega toh website kholegi browser mein.
+
+Aise hoga:
+
+LinkedIn post/profile mein likhega:
+
+"Built an AI-powered SAP ABAP Interview Coach" 🔗 Live Demo: abap-coach.vercel.app
+
+Recruiter click karega → website khulegi → use karega ✅
+
+GitHub kisliye then?
+
+GitHub = tera code dikhane ke liye
+
+Recruiter dekhega:
+
+Tu kitna clean code likhta hai
+Project ka structure kaisa hai
+Professional lagta hai
+Simple flow:
+
+LinkedIn → Live link (Vercel) = Project use karo
+LinkedIn → GitHub link = Code dekho
+Dono important hain portfolio ke liye!
+
+Ab banao setup? 🚀
+
+to log dekheneg kahan jo IT log apna project upload krte he jo esa kuch na
+
+12:00 PM
+Arre haan! Tu Portfolio Website ki baat kar raha hai! 🎯
+
+IT log yahan upload karte hain:
+
+Platform	Kisliye
+GitHub	Code rakho
+LinkedIn	Professional network
+Portfolio Website	Saare projects ek jagah
+Portfolio website kya hoti hai:
+
+Jaise ek page hota hai:
+
+yourname.vercel.app
+
+👋 Hi, I'm [Name]
+🛠️ My Projects:
+  → ABAP Coach AI  (live link)
+  → Project 2      (live link)
+  → Project 3      (live link)
+📧 Contact me
+Bade IT log yahan bhi daalte hain:
+
+Behance → designers ke liye
+Dev.to → blogs/articles
+Hashnode → technical blogs
+Tera abhi ka goal:
+
+1. ABAP Coach → Vercel pe live karo
+2. GitHub pe code daalo
+3. LinkedIn pe share karo
+Portfolio website baad mein bana lena — pehle ek solid project live karo! 💪
+
+Shuru karein setup? 🚀
+
+devlog kya he
+
+12:01 PM
+Dev.to hai — developers ka blog/community platform 📝
+
+Kya hota hai wahan:
+
+Developers likhte hain jaise:
+
+"Maine ek AI Interview Coach banaya — yeh raha how I built it"
+
+Phir:
+
+Code explain karte hain
+Screenshots daalte hain
+Live link daalte hain
+Dusre developers padhte hain, like karte hain
+Iske fayde:
+
+Recruiter dekhta hai tu soch ke kaam karta hai
+Teri thinking process dikhti hai
+Personal branding banti hai
+Tera example article ho sakta hai:
+
+Title: "How I built an SAP ABAP AI Interview Coach"
+
+- Problem kya tha
+- Maine kaise banaya
+- Claude API use kiya
+- Live link: abap-coach.vercel.app
+- GitHub: github.com/tera-naam
+Honestly tera abhi ka focus:
+
+1st → Project live karo (Vercel)
+2nd → GitHub pe daalo
+3rd → LinkedIn pe share karo
+4th → Dev.to article (baad mein)
+Ek ek step karte hain? Pehle Vercel setup karein? 🚀
+
+ist step bolo
+
+12:03 PM
+Chalo shuru karte hain! 🚀
+
+Step 1 — Files ready karo
+
+Tere computer pe ek folder bana:
+
+abap-coach/
+├── api/
+│   └── feedback.js
+├── public/
+│   └── index.html
+└── package.json
+Main abhi tujhe teen files de deta hun ready made:
+
+✅ index.html — updated (fetch URL badla hua)
+✅ api/feedback.js — proxy file
+✅ package.json — simple config
+Pehle bata:
+
+Tera computer Windows hai ya Mac?
+
+Aur VS Code installed hai? 😊
+
+comp han vs code he tu bol rhi thi kuch vercel bolke
+
+12:05 PM
+Haan! Pehle files ready karo — phir Vercel pe daalenge.
+
+Abhi yeh karo:
+
+Ek folder bana Desktop pe — naam do abap-coach
+Us folder ke andar 2 folder bana:
+api
+public
+VS Code mein open karo yeh folder
+Jab yeh ho jaye toh bata — main teeno files ka code de dunga ek ek karke! 😊
+
+ABAP COUCH EK FOLDER USKO OPEN KRNE SE DO FOLDER RIGHT PAR TEEN COD KESE HUI
+
+12:07 PM
+Arre simple hai! 😄
+
+Yeh kar:
+
+abap-coach folder VS Code mein khol
+Left side pe New Folder icon click kar — naam do api
+Phir aur ek New Folder — naam do public
+public folder mein New File — naam do index.html
+api folder mein New File — naam do feedback.js
+abap-coach folder mein (bahar) New File — naam do package.json
+Aisa dikhega:
+
+abap-coach/
+├── api/
+│   └── feedback.js
+├── public/
+│   └── index.html
+└── package.json
+Jab yeh structure ban jaye toh bata — phir main teenon files ka code dunga! 😊
+
+me desktop me ye 3 foleder banyyi
+
+12:08 PM
+Arre nahi! 😄
+
+3 folder nahi — 1 folder aur 2 folder uske andar!
+
+Aisa karo:
+
+Desktop pe sirf ek folder bana — abap-coach
+Us abap-coach folder ke andar ja
+Wahan 2 folder bana:
+api
+public
+Aisa dikhna chahiye:
+
+Desktop/
+└── abap-coach/        ← sirf yeh dikhega desktop pe
+      ├── api/
+      └── public/
+Kar liya? Bata! 😊
+
+wesa ki hun
+
+12:08 PM
+Perfect! 🎉
+
+Ab VS Code mein open karo:
+
+VS Code kholo
+File → Open Folder click karo
+Desktop pe ja
+abap-coach folder select karo
+Open click karo
+Ho gaya? Bata! 😊
+
+Screenshot (276).png
+KO
+
+12:12 PM
+Perfect! VS Code mein dikh raha hai ABAP COUCH folder with API aur PUBLIC folders! 🎉
+
+Ab 3 files banao:
+
+public folder pe right click → New File → naam do:
+
+index.html
+api folder pe right click → New File → naam do:
+
+feedback.js
+ABAP COUCH folder pe right click → New File → naam do:
+
+package.json
+Kar liya? Bata! 😊
+
+DONE
+
+12:13 PM
+Perfect! 🎉
+
+Ab package.json file kholo VS Code mein aur yeh paste karo:
+
+json
+{
+  "name": "abap-coach",
+  "version": "1.0.0"
+}
+Save karo — Ctrl + S
+
+Ho gaya? Bata! 😊
+
+Screenshot (277).png
+KAHAN SAVE KARU
+
+12:15 PM
+Ctrl + S daba — bas! ⌨️
+
+Keyboard pe Ctrl aur S ek saath press karo. File save ho jayegi! 😊
+
+SAVE AS NHI KARNA TO
+
+12:15 PM
+Nahi! Save As nahi karna! 😄
+
+Sirf Ctrl + S — seedha save ho jayega same file mein!
+
+Ho gaya? Bata! 😊
+
+done
+
+12:16 PM
+Perfect! 🎉
+
+Ab feedback.js file kholo aur yeh paste karo:
+
+js
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': process.env.ANTHROPIC_API_KEY
+    },
+    body: JSON.stringify(req.body)
+  });
+
+  const data = await response.json();
+  res.status(response.status).json(data);
+}
+Save karo — Ctrl + S
+
+Ho gaya? Bata! 😊
+
+done
+
+12:17 PM
+Perfect! 🎉
+
+Ab index.html file kholo aur maine jo updated file di thi — uska code paste karo!
+
+Yaad hai na maine pehle fix ki thi teri HTML file? Woh download karke uska sara code copy karo aur index.html mein paste karo!
+
+Phir ek cheez change karni hai andar — bata jab paste ho jaye! 😊
+
+index file download nhi ki thi phirse do
+
+12:18 PM
+
+Check the fixed file in outputs
+Check the fixed file in outputs
+Abhi proxy ke liye fetch URL bhi badalni hai. Let me update and give the final file:
+
+
+Edited a file, ran a command, read a file
+Edited a file, ran a command, read a file
+Le! ✅ Updated index.html ready hai!
+
+Ab yeh karo:
+
+Upar file download karo
+Us file ka sara code copy karo (Ctrl+A → Ctrl+C)
+VS Code mein index.html kholo
+Wahan paste karo (Ctrl+A → Ctrl+V)
+Ctrl+S save karo
+Ho gaya? Bata! 😊
+
+
+Index
+Code · HTML 
+ki copy
+
+12:21 PM
+Perfect! 🎉
+
+Ab VS Code mein public folder ke andar index.html file kholo aur:
+
+Ctrl + A — sara purana content select karo
+Ctrl + V — paste karo
+Ctrl + S — save karo
+Ho gaya? Bata! 😊
+
+ok
+
+12:22 PM
+Perfect! 🎉
+
+Ab GitHub pe account hai tera? 😊
+
+abey tum change karne ke liye bole the jo
+
+12:22 PM
+Arre nahi! 😄
+
+Kuch change nahi karna — maine already file mein change kar diya tha before downloading!
+
+Woh /api/feedback wala URL already updated hai file mein! ✅
+
+Ab bata — GitHub account hai tera? 😊
+
+aur vercel etc
+
+12:22 PM
+Haan dono chahiye! 😊
+
+Abhi yeh karo:
+
+1. GitHub account bana (agar nahi hai) 👉 github.com → Sign Up
+
+2. Vercel account bana (agar nahi hai) 👉 vercel.com → Sign Up with GitHub ← GitHub se hi sign up karna!
+
+Dono pe account ban gaya? Bata! 😊
+
+
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="utf-8"/> <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <title>ABAP Coach AI | SAP Interview Excellence</title> <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght
+
+pasted
+
+check it unrusted he sayad tum change karne ke liye bologe to krungi
+
+12:23 PM
+Bilkul sahi hai! ✅
+
+Yeh file already correct hai — maine dekha:
+
+js
+const resp = await fetch("/api/feedback",{
+✅ /api/feedback — sahi hai ✅ Koi API key nahi hai file mein ✅ Safe hai GitHub pe daalne ke liye
+
+Ab yeh karo:
+
+VS Code mein public folder ke andar index.html file kholo:
+
+Ctrl + A — sara purana content select karo
+Upar jo document dikh raha hai uska sara code copy karo
+Ctrl + V — paste karo
+Ctrl + S — save karo
+Ho gaya? Bata! 😊
+
+
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Pasted content
+70.06 KB •1,235 lines
+Formatting may be inconsistent from source
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ABAP Coach AI | SAP Interview Excellence</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET & BASE ───────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink:    #0a0f1e;
+  --ink2:   #3a4060;
+  --blue:   #1a56ff;
+  --blue2:  #3b6fff;
+  --sky:    #e8eeff;
+  --white:  #ffffff;
+  --off:    #f5f6fa;
+  --border: #e1e4f0;
+  --green:  #00c07f;
+  --amber:  #f59e0b;
+  --red:    #ef4444;
+  --card:   #ffffff;
+  --r:      14px;
+  --nav-h:  64px;
+}
+html { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--off); }
+body { overflow-x: hidden; }
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; display:inline-block; vertical-align:middle; user-select:none; }
+
+/* ─── NAV ────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: var(--nav-h);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  transition: box-shadow .3s;
+}
+nav.scrolled { box-shadow: 0 4px 24px rgba(10,15,30,.07); }
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-logo-icon {
+  width:36px; height:36px; background:var(--ink); border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+.nav-logo-icon span { color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:14px; }
+.nav-logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+.nav-logo-text em { color:var(--blue); font-style:normal; }
+.nav-links { display:flex; align-items:center; gap:4px; }
+.nav-link {
+  padding: 8px 14px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; color: var(--ink2);
+  cursor: pointer; border: none; background: none;
+  transition: all .2s; position: relative;
+}
+.nav-link:hover { color: var(--blue); background: var(--sky); }
+.nav-link.active { color: var(--blue); }
+.nav-link.active::after {
+  content:''; position:absolute; bottom:-1px; left:14px; right:14px;
+  height:2px; background:var(--blue); border-radius:2px;
+}
+.nav-cta {
+  padding: 9px 20px; border-radius: 10px;
+  background: var(--blue); color: white;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; transition: all .2s;
+  box-shadow: 0 4px 14px rgba(26,86,255,.3);
+}
+.nav-cta:hover { background: var(--blue2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,86,255,.4); }
+.hamburger { display:none; background:none; border:none; cursor:pointer; padding:6px; }
+
+/* ─── PAGE SYSTEM ────────────────────────────────────── */
+.page {
+  position: absolute; top: var(--nav-h); left: 0; right: 0;
+  min-height: calc(100vh - var(--nav-h));
+  opacity: 0; pointer-events: none;
+  transform: translateY(20px);
+  transition: opacity .4s cubic-bezier(.4,0,.2,1), transform .4s cubic-bezier(.4,0,.2,1);
+}
+.page.active {
+  opacity: 1; pointer-events: all; transform: translateY(0);
+  position: relative;
+}
+.page.exit { opacity: 0; transform: translateY(-16px); }
+
+/* ─── SHARED COMPONENTS ──────────────────────────────── */
+.badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 14px; border-radius:99px;
+  font-size:12px; font-weight:600; letter-spacing:.04em;
+  border: 1px solid;
+}
+.badge-blue { background:var(--sky); color:var(--blue); border-color:rgba(26,86,255,.2); }
+.badge-green { background:#e6faf3; color:#00a86b; border-color:rgba(0,192,127,.25); }
+.badge-amber { background:#fff8e6; color:#d97706; border-color:rgba(245,158,11,.25); }
+.badge-red { background:#fff0f0; color:var(--red); border-color:rgba(239,68,68,.25); }
+.dot-live { width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:12px 24px; border-radius:12px;
+  font-size:14px; font-weight:600; cursor:pointer;
+  border:none; transition:all .2s; text-decoration:none;
+}
+.btn-primary { background:var(--blue); color:white; box-shadow:0 4px 16px rgba(26,86,255,.3); }
+.btn-primary:hover { background:var(--blue2); transform:translateY(-2px); box-shadow:0 8px 24px rgba(26,86,255,.35); }
+.btn-outline { background:white; color:var(--ink); border:1.5px solid var(--border); }
+.btn-outline:hover { border-color:var(--blue); color:var(--blue); background:var(--sky); }
+.btn-ghost { background:transparent; color:var(--ink2); }
+.btn-ghost:hover { background:var(--off); color:var(--ink); }
+
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:24px;
+  transition:transform .2s, box-shadow .2s, border-color .2s;
+}
+.card:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(10,15,30,.08); }
+
+.section-label { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; }
+.section-title { font-family:'Syne',sans-serif; font-weight:800; color:var(--ink); }
+.section-sub { color:var(--ink2); font-size:15px; line-height:1.7; }
+
+/* ─── PAGE: HOME ─────────────────────────────────────── */
+#page-home {
+  background: var(--white);
+  display:flex; flex-direction:column;
+}
+.home-hero {
+  padding: 80px 32px 60px;
+  max-width: 1100px; margin: 0 auto; width:100%;
+  display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;
+}
+.hero-kicker { margin-bottom:20px; }
+.hero-h1 {
+  font-family:'Syne',sans-serif; font-weight:800;
+  font-size:clamp(36px,4.5vw,58px); line-height:1.08;
+  color:var(--ink); margin-bottom:20px;
+  letter-spacing:-.02em;
+}
+.hero-h1 .accent { color:var(--blue); }
+.hero-sub { font-size:16px; line-height:1.75; color:var(--ink2); margin-bottom:32px; max-width:420px; }
+.hero-btns { display:flex; gap:12px; flex-wrap:wrap; }
+.hero-stats { display:flex; gap:24px; margin-top:36px; padding-top:28px; border-top:1px solid var(--border); }
+.stat-item .stat-n { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; color:var(--ink); }
+.stat-item .stat-l { font-size:12px; color:var(--ink2); margin-top:2px; }
+
+/* Hero right: fake app card */
+.hero-app {
+  background:var(--ink); border-radius:20px; padding:20px;
+  box-shadow:0 32px 80px rgba(10,15,30,.22);
+  animation:floatCard 4s ease-in-out infinite;
+}
+@keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.app-topbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.app-dot { width:10px;height:10px;border-radius:50%; }
+.app-title { font-size:11px; color:rgba(255,255,255,.4); margin-left:auto; font-family:'JetBrains Mono',monospace; }
+.app-code { font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.9; }
+.ck { color:#89b4fa; } .cs { color:#a6e3a1; } .cc { color:#6c7086; } .ct { color:#f9e2af; } .cw { color:#cdd6f4; }
+.app-ai-bar {
+  margin-top:16px; padding:10px 14px; background:rgba(26,86,255,.15);
+  border-radius:10px; border:1px solid rgba(26,86,255,.3);
+  display:flex; align-items:center; gap:8px;
+}
+.app-ai-bar span { font-size:12px; color:rgba(255,255,255,.8); font-weight:500; }
+
+/* Home feature strips */
+.home-features {
+  background:var(--off); padding:64px 32px;
+  border-top:1px solid var(--border);
+}
+.features-grid {
+  max-width:1100px; margin:0 auto;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:40px;
+}
+.feat-card {
+  background:white; border:1px solid var(--border);
+  border-radius:16px; padding:28px;
+  transition:all .25s;
+}
+.feat-card:hover { border-color:var(--blue); transform:translateY(-4px); box-shadow:0 12px 32px rgba(26,86,255,.1); }
+.feat-icon {
+  width:48px;height:48px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+}
+.feat-title { font-family:'Syne',sans-serif; font-weight:700; font-size:17px; color:var(--ink); margin-bottom:8px; }
+.feat-desc { font-size:14px; color:var(--ink2); line-height:1.65; }
+
+/* ─── PAGE: MODULES ──────────────────────────────────── */
+#page-modules { background:var(--off); padding:48px 32px; }
+.modules-wrap { max-width:1100px; margin:0 auto; }
+.modules-header { margin-bottom:36px; }
+.modules-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.module-card {
+  background:white; border:1.5px solid var(--border);
+  border-radius:16px; padding:28px; cursor:pointer;
+  transition:all .25s; position:relative; overflow:hidden;
+}
+.module-card:hover { border-color:var(--blue); transform:translateY(-4px); box-shadow:0 12px 36px rgba(26,86,255,.1); }
+.module-card.featured { grid-column:1/-1; background:var(--ink); border-color:transparent; }
+.module-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.module-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center; }
+.module-title { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; margin-bottom:8px; }
+.module-desc { font-size:14px; line-height:1.65; margin-bottom:16px; }
+.module-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.tag { padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; }
+.tag-blue { background:var(--sky); color:var(--blue); }
+.tag-green { background:#e6faf3; color:#00a86b; }
+.tag-ink { background:rgba(255,255,255,.12); color:rgba(255,255,255,.7); }
+.module-arrow { color:var(--blue); font-size:13px; font-weight:600; display:flex;align-items:center;gap:4px;margin-top:16px; }
+.module-card.featured .module-title { color:white; }
+.module-card.featured .module-desc { color:rgba(255,255,255,.65); }
+.module-card.featured .module-arrow { color:#89b4fa; }
+
+/* ─── PAGE: INTERVIEW ────────────────────────────────── */
+#page-interview { background:var(--off); padding:48px 32px; }
+.interview-wrap { max-width:860px; margin:0 auto; }
+.interview-card {
+  background:white; border:1px solid var(--border);
+  border-radius:20px; overflow:hidden;
+  box-shadow:0 8px 40px rgba(10,15,30,.06);
+}
+/* card header */
+.ic-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 24px; border-bottom:1px solid var(--border);
+  background:white;
+}
+.ic-title { display:flex;align-items:center;gap:10px; }
+.ic-logo { width:34px;height:34px;background:var(--ink);border-radius:9px;display:flex;align-items:center;justify-content:center; }
+.ic-logo span { color:white;font-family:'Syne',sans-serif;font-weight:800;font-size:12px; }
+.ic-name { font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--ink); }
+.ic-sub { font-size:11px;color:var(--ink2);margin-top:1px; }
+/* toggle */
+.toggle-wrap { display:flex;align-items:center;gap:10px; }
+.toggle-txt { text-align:right; }
+.toggle-txt .tl { font-size:13px;font-weight:600;color:var(--ink); }
+.toggle-txt .ts { font-size:11px;color:var(--ink2); }
+.toggle { position:relative;width:52px;height:28px; }
+.toggle input { opacity:0;width:0;height:0; }
+.toggle-track {
+  position:absolute;inset:0;background:#d1d5db;border-radius:99px;cursor:pointer;transition:background .3s;
+}
+.toggle-track::before {
+  content:'';position:absolute;width:22px;height:22px;
+  left:3px;top:3px;background:white;border-radius:50%;
+  transition:transform .3s;box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
+input:checked + .toggle-track { background:var(--blue); }
+input:checked + .toggle-track::before { transform:translateX(24px); }
+/* ai banner */
+.ai-banner {
+  display:none;padding:10px 24px;
+  background:rgba(26,86,255,.07);border-bottom:1px solid rgba(26,86,255,.15);
+  font-size:12px;font-weight:600;color:var(--blue);
+  align-items:center;gap:8px;
+}
+.ai-banner.show { display:flex; }
+/* topics */
+.ic-topics { display:flex;flex-wrap:wrap;gap:8px;padding:18px 24px;border-bottom:1px solid var(--border); }
+.topic-btn {
+  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1.5px solid var(--border);background:white;color:var(--ink2);
+  cursor:pointer;transition:all .2s;
+}
+.topic-btn:hover,.topic-btn.on { border-color:var(--blue);background:var(--sky);color:var(--blue); }
+/* question */
+.ic-question-box { padding:20px 24px; }
+.qbox {
+  background:var(--ink);border-radius:14px;padding:20px;margin-bottom:18px;
+  position:relative;
+}
+.qbox-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px; }
+.qbox-label { font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4); }
+.qbox-refresh {
+  width:30px;height:30px;background:rgba(255,255,255,.1);border:none;
+  border-radius:8px;cursor:pointer;color:rgba(255,255,255,.6);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.qbox-refresh:hover { background:rgba(255,255,255,.2);color:white; }
+.qbox-q { font-size:15px;color:white;line-height:1.65;font-weight:400; }
+.qbox-q strong { color:#89b4fa; }
+/* answer */
+.ic-answer { position:relative;margin-bottom:16px; }
+.ic-answer textarea {
+  width:100%;height:140px;padding:14px;border-radius:12px;
+  border:1.5px solid var(--border);background:var(--off);
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);
+  resize:none;outline:none;transition:border-color .2s,background .2s;
+  line-height:1.65;
+}
+.ic-answer textarea:focus { border-color:var(--blue);background:white;box-shadow:0 0 0 4px rgba(26,86,255,.07); }
+.ic-charcount { position:absolute;bottom:10px;right:12px;font-size:11px;color:var(--ink2);opacity:.7; }
+/* actions */
+.ic-actions { display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 24px 20px; }
+.ic-hint { margin-left:auto;font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px; }
+/* feedback */
+.ic-feedback { border-top:1px solid var(--border); }
+/* shimmer */
+.shimmer-box { padding:24px; }
+.shimmer { border-radius:8px;background:linear-gradient(90deg,#f0f2f8 25%,#e4e7f0 50%,#f0f2f8 75%);background-size:600px 100%;animation:shim 1.5s infinite; }
+@keyframes shim { from{background-position:-600px 0} to{background-position:600px 0} }
+/* feedback content */
+.fb-content { padding:24px; animation:fadeUp .4s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.fb-scores {
+  display:grid;grid-template-columns:auto 1fr auto auto auto;
+  align-items:center;gap:16px;
+  padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--border);
+}
+.score-ring {
+  width:64px;height:64px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(var(--green) 0% var(--pct,0%), #e5e7eb var(--pct,0%));
+  position:relative;
+}
+.score-ring::after { content:'';width:48px;height:48px;border-radius:50%;background:white;position:absolute; }
+.score-num { position:relative;z-index:1;font-family:'Syne',sans-serif;font-weight:800;font-size:17px; }
+.score-info .sh { font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ink);margin-bottom:3px; }
+.score-info .ss { font-size:13px;color:var(--ink2); }
+.score-pill { text-align:center;padding:8px 12px;border-radius:10px; }
+.score-pill .sp-n { font-family:'Syne',sans-serif;font-weight:800;font-size:16px; }
+.score-pill .sp-l { font-size:10px;font-weight:600;margin-top:2px; }
+.fb-section { border-radius:12px;padding:16px;margin-bottom:12px; }
+.fb-section-title { font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:10px; }
+.fb-list { display:flex;flex-direction:column;gap:6px; }
+.fb-item { font-size:13px;line-height:1.6;display:flex;align-items:flex-start;gap:8px; }
+.fb-actions { display:flex;gap:10px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border); }
+
+/* ─── PAGE: PRICING ──────────────────────────────────── */
+#page-pricing { background:var(--white); padding:48px 32px; }
+.pricing-wrap { max-width:960px;margin:0 auto; }
+.pricing-header { text-align:center;margin-bottom:48px; }
+.pricing-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:20px; }
+.plan-card {
+  background:white;border:1.5px solid var(--border);
+  border-radius:20px;padding:32px;
+  transition:all .25s;
+}
+.plan-card:hover { transform:translateY(-4px);box-shadow:0 16px 48px rgba(10,15,30,.08); }
+.plan-card.popular { background:var(--ink);border-color:var(--ink);position:relative; }
+.popular-badge {
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--blue);color:white;padding:4px 14px;border-radius:99px;font-size:11px;font-weight:700;
+}
+.plan-name { font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px; }
+.plan-price { font-family:'Syne',sans-serif;font-weight:800;font-size:38px;margin-bottom:4px; }
+.plan-per { font-size:13px;margin-bottom:24px; }
+.plan-features { list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px; }
+.plan-features li { display:flex;align-items:center;gap:8px;font-size:13px; }
+.plan-features li.off { opacity:.4; }
+
+/* ─── PAGE: ABOUT ────────────────────────────────────── */
+#page-about { background:var(--white); padding:48px 32px; }
+.about-wrap { max-width:860px;margin:0 auto; }
+.about-hero { display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-bottom:60px; }
+.about-stat-row { display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px; }
+.about-stat { background:var(--off);border-radius:16px;padding:28px;text-align:center;border:1px solid var(--border); }
+.about-stat .asn { font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:var(--blue); }
+.about-stat .asl { font-size:13px;color:var(--ink2);margin-top:4px; }
+.team-section { margin-top:56px; }
+.team-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px; }
+.team-card { background:var(--off);border-radius:16px;padding:24px;border:1px solid var(--border);text-align:center; }
+.team-avatar {
+  width:56px;height:56px;border-radius:50%;margin:0 auto 12px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:white;
+}
+.team-name { font-weight:700;font-size:15px;color:var(--ink);margin-bottom:3px; }
+.team-role { font-size:12px;color:var(--ink2); }
+
+/* ─── MOBILE MENU ────────────────────────────────────── */
+.mob-menu {
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(10,15,30,.5);backdrop-filter:blur(4px);
+}
+.mob-panel {
+  position:absolute;top:0;right:0;bottom:0;width:280px;
+  background:white;padding:24px;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;gap:4px;
+}
+.mob-menu.open { display:block; }
+.mob-menu.open .mob-panel { transform:translateX(0); }
+.mob-close { display:flex;justify-content:flex-end;margin-bottom:20px; }
+.mob-link {
+  padding:14px;border-radius:12px;font-size:15px;font-weight:500;color:var(--ink);
+  cursor:pointer;border:none;background:none;text-align:left;width:100%;
+  transition:all .2s;
+}
+.mob-link:hover { background:var(--off);color:var(--blue); }
+.mob-link.active { background:var(--sky);color:var(--blue);font-weight:600; }
+
+/* ─── FOOTER ─────────────────────────────────────────── */
+footer {
+  background:var(--ink);color:rgba(255,255,255,.5);
+  padding:32px;text-align:center;font-size:13px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+footer a { color:rgba(255,255,255,.6);text-decoration:none;margin:0 12px; }
+footer a:hover { color:white; }
+.footer-links { display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin-top:10px; }
+
+/* ─── MODAL ──────────────────────────────────────────── */
+.modal-overlay {
+  display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(10,15,30,.55);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:white;border-radius:20px;padding:36px;
+  width:100%;max-width:420px;
+  animation:popIn .3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+.modal-head { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px; }
+.modal-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--ink); }
+.modal-close { background:var(--off);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+.form-group { margin-bottom:16px; }
+.form-label { font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:6px; }
+.form-input {
+  width:100%;padding:12px 14px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--off);
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);
+  outline:none;transition:all .2s;
+}
+.form-input:focus { border-color:var(--blue);background:white;box-shadow:0 0 0 4px rgba(26,86,255,.07); }
+.form-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+.form-select {
+  width:100%;padding:12px 14px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--off);
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);
+  outline:none;transition:all .2s;appearance:none;cursor:pointer;
+}
+.form-select:focus { border-color:var(--blue);background:white; }
+.form-note { font-size:12px;color:var(--ink2);text-align:center;margin-top:12px; }
+.form-note a { color:var(--blue);font-weight:600; }
+
+/* ─── RESPONSIVE ─────────────────────────────────────── */
+@media(max-width:900px) {
+  .home-hero { grid-template-columns:1fr;gap:40px; }
+  .hero-app { display:none; }
+  .features-grid { grid-template-columns:1fr; }
+  .modules-grid { grid-template-columns:1fr; }
+  .pricing-grid { grid-template-columns:1fr; }
+  .about-hero { grid-template-columns:1fr; }
+  .about-stat-row { grid-template-columns:1fr 1fr; }
+  .team-grid { grid-template-columns:1fr 1fr; }
+  .fb-scores { grid-template-columns:auto 1fr; }
+  .score-pill { display:none; }
+  .nav-links,.nav-cta { display:none; }
+  .hamburger { display:flex; }
+  nav { padding:0 20px; }
+  .home-hero,.home-features,#page-modules,#page-interview,#page-pricing,#page-about { padding-left:20px;padding-right:20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─────── NAV ─────── -->
+<nav id="site-nav">
+  <a class="nav-logo" href="#" onclick="navigate('home');return false;">
+    <div class="nav-logo-icon"><span>AC</span></div>
+    <span class="nav-logo-text">ABAP Coach <em>AI</em></span>
+  </a>
+  <div class="nav-links">
+    <button class="nav-link active" data-page="home" onclick="navigate('home')">Home</button>
+    <button class="nav-link" data-page="modules" onclick="navigate('modules')">Modules</button>
+    <button class="nav-link" data-page="interview" onclick="navigate('interview')">Interview Coach</button>
+    <button class="nav-link" data-page="pricing" onclick="navigate('pricing')">Pricing</button>
+    <button class="nav-link" data-page="about" onclick="navigate('about')">About</button>
+  </div>
+  <button class="nav-cta" onclick="openModal('signup')">Get Started Free</button>
+  <button class="hamburger" onclick="openMob()">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+</nav>
+
+<!-- ─────── MOBILE MENU ─────── -->
+<div class="mob-menu" id="mob-menu" onclick="closeMobOutside(event)">
+  <div class="mob-panel">
+    <div class="mob-close"><button onclick="closeMob()" style="background:var(--off);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined" style="font-size:18px">close</span></button></div>
+    <button class="mob-link active" id="mob-home" onclick="navigate('home');closeMob()">Home</button>
+    <button class="mob-link" id="mob-modules" onclick="navigate('modules');closeMob()">Modules</button>
+    <button class="mob-link" id="mob-interview" onclick="navigate('interview');closeMob()">Interview Coach</button>
+    <button class="mob-link" id="mob-pricing" onclick="navigate('pricing');closeMob()">Pricing</button>
+    <button class="mob-link" id="mob-about" onclick="navigate('about');closeMob()">About</button>
+    <div style="margin-top:auto;padding-top:20px;">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="openModal('signup');closeMob()">Get Started Free</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE: HOME
+═════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+
+  <div class="home-hero">
+    <!-- Left -->
+    <div>
+      <div class="hero-kicker">
+        <span class="badge badge-blue"><span class="dot-live"></span>Live AI Feedback · 12,000+ Users</span>
+      </div>
+      <h1 class="hero-h1">
+        Master ABAP.<br/>
+        <span class="accent">Ace</span> Your<br/>
+        SAP Interview.
+      </h1>
+      <p class="hero-sub">
+        Practice real SAP interview questions with instant AI coaching. Get expert feedback like having a senior ABAP developer review your answers — on demand, 24/7.
+      </p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="navigate('interview')">
+          <span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>
+          Start Practicing Free
+        </button>
+        <button class="btn btn-outline" onclick="navigate('modules')">
+          <span class="material-symbols-outlined" style="font-size:18px">grid_view</span>
+          View Modules
+        </button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item"><div class="stat-n">12K+</div><div class="stat-l">Active Learners</div></div>
+        <div class="stat-item"><div class="stat-n">200+</div><div class="stat-l">ABAP Questions</div></div>
+        <div class="stat-item"><div class="stat-n">4.9★</div><div class="stat-l">Avg. Rating</div></div>
+      </div>
+    </div>
+
+    <!-- Right: App preview -->
+    <div class="hero-app">
+      <div class="app-topbar">
+        <div class="app-dot" style="background:#ff5f56"></div>
+        <div class="app-dot" style="background:#ffbd2e"></div>
+        <div class="app-dot" style="background:#27c93f"></div>
+        <div class="app-title">Z_INTERVIEW_PREP.abap</div>
+      </div>
+      <div class="app-code">
+        <div><span class="cc">"* Internal Table performance</span></div>
+        <div><span class="ck">REPORT</span><span class="cw"> z_interview_prep.</span></div>
+        <div>&nbsp;</div>
+        <div><span class="ck">DATA</span><span class="cw">: lt_emp </span><span class="ck">TYPE HASHED TABLE OF</span></div>
+        <div><span class="ct">  zsap_employee</span></div>
+        <div><span class="cw">    </span><span class="ck">WITH UNIQUE KEY</span><span class="cw"> empid.</span></div>
+        <div>&nbsp;</div>
+        <div><span class="ck">SELECT</span><span class="cw"> * </span><span class="ck">FROM</span><span class="cw"> zsap_employee</span></div>
+        <div><span class="cw">  </span><span class="ck">INTO TABLE</span><span class="cw"> lt_emp.</span></div>
+        <div>&nbsp;</div>
+        <div><span class="cc">"* O(1) lookup — ideal for HANA</span></div>
+        <div><span class="ck">READ TABLE</span><span class="cw"> lt_emp</span></div>
+        <div><span class="cw">  </span><span class="ck">WITH TABLE KEY</span><span class="cw"> empid = </span><span class="cs">'E001'</span><span class="cw">.</span></div>
+      </div>
+      <div class="app-ai-bar">
+        <span class="dot-live" style="color:#89b4fa;width:8px;height:8px;border-radius:50%;background:#89b4fa;animation:pulse 1.5s infinite"></span>
+        <span>AI Coach is analyzing your answer...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="home-features">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="section-label">Why ABAP Coach AI?</div>
+      <h2 class="section-title" style="font-size:clamp(24px,2.5vw,32px);margin-bottom:4px;">Everything you need to land your SAP role</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:var(--sky);">
+          <span class="material-symbols-outlined" style="color:var(--blue)">psychology</span>
+        </div>
+        <div class="feat-title">Real AI Feedback</div>
+        <div class="feat-desc">Toggle the AI Coach and get scored on technical accuracy, clarity, and depth — instantly after each answer.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#e6faf3;">
+          <span class="material-symbols-outlined" style="color:#00a86b">quiz</span>
+        </div>
+        <div class="feat-title">200+ Real Questions</div>
+        <div class="feat-desc">Curated from actual SAP interviews at Accenture, TCS, Infosys, Wipro, Deloitte, and top SAP consulting firms.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#fff8e6;">
+          <span class="material-symbols-outlined" style="color:#d97706">speed</span>
+        </div>
+        <div class="feat-title">HANA Performance Focus</div>
+        <div class="feat-desc">Special modules for S/4HANA interviews — CDS Views, AMDP, Code-to-Data, the skills companies pay most for.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div style="background:var(--ink);padding:64px 32px;text-align:center;">
+    <div style="max-width:560px;margin:0 auto;">
+      <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(24px,3vw,36px);color:white;margin-bottom:14px;">Your next SAP offer starts here.</h2>
+      <p style="color:rgba(255,255,255,.55);font-size:15px;margin-bottom:28px;">Join 12,000+ SAP professionals. Free to start — no credit card needed.</p>
+      <button class="btn btn-primary" style="font-size:15px;padding:14px 32px;" onclick="openModal('signup')">Create Free Account</button>
+    </div>
+  </div>
+
+  <footer>
+    <div>© 2025 ABAP Coach AI · Systematic SAP Excellence</div>
+    <div class="footer-links">
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Blog</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE: MODULES
+═════════════════════════════════════════════════════ -->
+<div class="page" id="page-modules">
+  <div id="page-modules-inner" style="padding:48px 32px;max-width:1100px;margin:0 auto;">
+    <div class="modules-header">
+      <div class="section-label">Learning Paths</div>
+      <h2 class="section-title" style="font-size:clamp(26px,3vw,38px);margin-bottom:10px;">Core ABAP Modules</h2>
+      <p class="section-sub" style="max-width:520px;">Structured pathways from junior consultant to SAP architect. Every module includes AI interview simulation.</p>
+    </div>
+    <div class="modules-grid">
+
+      <div class="module-card" onclick="navigate('interview')">
+        <div class="module-top">
+          <div class="module-icon" style="background:var(--sky);"><span class="material-symbols-outlined" style="color:var(--blue)">menu_book</span></div>
+          <span class="badge badge-green">Beginner</span>
+        </div>
+        <div class="module-title">Fundamentals</div>
+        <div class="module-desc" style="color:var(--ink2);">Data Dictionary, Reports, Modularization, Function Modules — the bedrock of every SAP consultant.</div>
+        <div class="module-tags"><span class="tag tag-blue">Internal Tables</span><span class="tag tag-blue">SELECT</span><span class="tag tag-blue">Modularization</span></div>
+        <div class="module-arrow"><span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Start module</div>
+      </div>
+
+      <div class="module-card" onclick="navigate('interview')">
+        <div class="module-top">
+          <div class="module-icon" style="background:#f3e8ff;"><span class="material-symbols-outlined" style="color:#9333ea">hub</span></div>
+          <span class="badge badge-amber">Advanced</span>
+        </div>
+        <div class="module-title">OOP ABAP</div>
+        <div class="module-desc" style="color:var(--ink2);">Classes, Interfaces, Inheritance, Design Patterns — modern ABAP the way top employers expect it.</div>
+        <div class="module-tags"><span class="tag tag-blue">Classes</span><span class="tag tag-blue">Interfaces</span><span class="tag tag-blue">Events</span></div>
+        <div class="module-arrow"><span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Start module</div>
+      </div>
+
+      <div class="module-card" onclick="navigate('interview')">
+        <div class="module-top">
+          <div class="module-icon" style="background:#e6faf3;"><span class="material-symbols-outlined" style="color:#00a86b">table_chart</span></div>
+          <span class="badge badge-amber">Intermediate</span>
+        </div>
+        <div class="module-title">ALV Reports</div>
+        <div class="module-desc" style="color:var(--ink2);">OOP ALV Grid, Field Catalogs, Custom Buttons, Layout Persistence — every consultant's daily tool.</div>
+        <div class="module-tags"><span class="tag tag-blue">ALV Grid</span><span class="tag tag-blue">CL_GUI_ALV_GRID</span></div>
+        <div class="module-arrow"><span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Start module</div>
+      </div>
+
+      <div class="module-card" onclick="navigate('interview')">
+        <div class="module-top">
+          <div class="module-icon" style="background:#fff8e6;"><span class="material-symbols-outlined" style="color:#d97706">api</span></div>
+          <span class="badge badge-amber">Intermediate</span>
+        </div>
+        <div class="module-title">BAPI & RFC</div>
+        <div class="module-desc" style="color:var(--ink2);">Remote Function Calls, BAPIs, error handling, COMMIT WORK — integration layer essentials.</div>
+        <div class="module-tags"><span class="tag tag-blue">RFC</span><span class="tag tag-blue">BAPI</span><span class="tag tag-blue">COMMIT</span></div>
+        <div class="module-arrow"><span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Start module</div>
+      </div>
+
+      <!-- Featured -->
+      <div class="module-card featured" onclick="navigate('interview')">
+        <div class="module-top">
+          <div class="module-icon" style="background:rgba(255,255,255,.12);"><span class="material-symbols-outlined" style="color:white">speed</span></div>
+          <span class="badge" style="background:rgba(26,86,255,.3);color:#89b4fa;border-color:rgba(26,86,255,.3);">🔥 Most In-Demand</span>
+        </div>
+        <div class="module-title">SAP HANA Performance</div>
+        <div class="module-desc">Code-to-Data, AMDP, CDS Views, ADBC, SQL Script — the skills that command the highest SAP salaries in S/4HANA projects.</div>
+        <div class="module-tags"><span class="tag tag-ink">CDS Views</span><span class="tag tag-ink">AMDP</span><span class="tag tag-ink">Code-to-Data</span><span class="tag tag-ink">VDM</span></div>
+        <div class="module-arrow"><span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Start HANA module</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE: INTERVIEW COACH
+═════════════════════════════════════════════════════ -->
+<div class="page" id="page-interview">
+  <div style="padding:48px 32px;max-width:860px;margin:0 auto;">
+    <div style="margin-bottom:28px;">
+      <div class="section-label">Live AI Feature</div>
+      <h2 class="section-title" style="font-size:clamp(24px,3vw,34px);margin-bottom:8px;">AI Interview Coach</h2>
+      <p class="section-sub">Answer real ABAP interview questions. Toggle the AI switch — get instant expert scoring and feedback.</p>
+    </div>
+
+    <div class="interview-card">
+      <!-- Header -->
+      <div class="ic-header">
+        <div class="ic-title">
+          <div class="ic-logo"><span>AC</span></div>
+          <div>
+            <div class="ic-name">ABAP Interview Simulator</div>
+            <div class="ic-sub">Real questions from SAP interviews worldwide</div>
+          </div>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-txt">
+            <div class="tl" id="tl">AI Coach: OFF</div>
+            <div class="ts" id="ts">Enable for live feedback</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="ai-toggle" onchange="onToggle(this)"/>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- AI Banner -->
+      <div class="ai-banner" id="ai-banner">
+        <span class="dot-live" style="color:var(--blue);width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1.5s infinite;"></span>
+        AI Coach is active — your answers will be analyzed in real-time
+      </div>
+
+      <!-- Topics -->
+      <div class="ic-topics">
+        <button class="topic-btn on" onclick="pickTopic(this,'Internal Tables')">Internal Tables</button>
+        <button class="topic-btn" onclick="pickTopic(this,'HANA Performance')">HANA Performance</button>
+        <button class="topic-btn" onclick="pickTopic(this,'OOP ABAP')">OOP ABAP</button>
+        <button class="topic-btn" onclick="pickTopic(this,'ALV Reports')">ALV Reports</button>
+        <button class="topic-btn" onclick="pickTopic(this,'BAPI & RFC')">BAPI & RFC</button>
+        <button class="topic-btn" onclick="pickTopic(this,'CDS Views')">CDS Views</button>
+      </div>
+
+      <!-- Question -->
+      <div class="ic-question-box">
+        <div class="qbox">
+          <div class="qbox-top">
+            <span class="qbox-label">Question &nbsp;·&nbsp; <span id="q-level">Intermediate</span></span>
+            <button class="qbox-refresh" onclick="nextQ()" title="Next question">
+              <span class="material-symbols-outlined" style="font-size:17px">refresh</span>
+            </button>
+          </div>
+          <div class="qbox-q" id="q-text">
+            Explain the difference between <strong>SORTED TABLE</strong>, <strong>HASHED TABLE</strong>, and <strong>STANDARD TABLE</strong> in ABAP. When would you choose one over the others in a real SAP project?
+          </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="ic-answer">
+          <textarea id="answer-box" placeholder="Type your answer here... Be as detailed as you would in a real interview. Explain your reasoning, give examples, and mention trade-offs." oninput="onType(this)"></textarea>
+          <div class="ic-charcount" id="char-count">0 / 2000</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="ic-actions">
+        <button class="btn btn-primary" id="submit-btn" onclick="doSubmit()" style="padding:10px 22px;font-size:13px;">
+          <span class="material-symbols-outlined" style="font-size:17px">send</span>
+          <span id="submit-label">Submit Answer</span>
+        </button>
+        <button class="btn btn-ghost" onclick="clearAns()" style="padding:10px 16px;font-size:13px;">Clear</button>
+        <div class="ic-hint" id="ic-hint">
+          <span class="material-symbols-outlined" style="font-size:14px">info</span>
+          Toggle AI Coach for live feedback
+        </div>
+      </div>
+
+      <!-- Feedback panel -->
+      <div class="ic-feedback" id="feedback-panel" style="display:none;">
+        <!-- Loading -->
+        <div id="fb-loading" class="shimmer-box" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <span class="material-symbols-outlined" style="color:var(--blue);animation:pulse 1.5s infinite">psychology</span>
+            <div>
+              <div style="font-weight:700;font-size:14px;">AI Coach is analyzing your answer...</div>
+              <div style="font-size:12px;color:var(--ink2);">Evaluating depth, accuracy, and structure</div>
+            </div>
+          </div>
+          <div class="shimmer" style="height:14px;width:70%;margin-bottom:10px;"></div>
+          <div class="shimmer" style="height:14px;width:100%;margin-bottom:10px;"></div>
+          <div class="shimmer" style="height:14px;width:85%;margin-bottom:10px;"></div>
+          <div class="shimmer" style="height:14px;width:60%;"></div>
+        </div>
+        <!-- Content -->
+        <div id="fb-content" class="fb-content" style="display:none;">
+          <div class="fb-scores">
+            <div class="score-ring" id="score-ring" style="--pct:0%">
+              <span class="score-num" id="score-num">0</span>
+            </div>
+            <div class="score-info">
+              <div class="sh" id="fb-headline">—</div>
+              <div class="ss" id="fb-summary">—</div>
+            </div>
+            <div class="score-pill" style="background:#e6faf3;">
+              <div class="sp-n" style="color:#00a86b;" id="sp-tech">—</div>
+              <div class="sp-l" style="color:#00a86b;">Technical</div>
+            </div>
+            <div class="score-pill" style="background:var(--sky);">
+              <div class="sp-n" style="color:var(--blue);" id="sp-clarity">—</div>
+              <div class="sp-l" style="color:var(--blue);">Clarity</div>
+            </div>
+            <div class="score-pill" style="background:#f3e8ff;">
+              <div class="sp-n" style="color:#9333ea;" id="sp-depth">—</div>
+              <div class="sp-l" style="color:#9333ea;">Depth</div>
+            </div>
+          </div>
+          <div id="fb-body"></div>
+          <div class="fb-actions">
+            <button class="btn btn-primary" style="font-size:13px;padding:10px 20px;" onclick="nextQ();clearAns();hidePanel();">
+              <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span>Next Question
+            </button>
+            <button class="btn btn-outline" style="font-size:13px;padding:10px 18px;" onclick="reattempt()">
+              <span class="material-symbols-outlined" style="font-size:16px">replay</span>Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:28px;margin-top:20px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:14px;color:var(--green)">check_circle</span>200+ real questions</span>
+      <span style="font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:14px;color:var(--blue)">psychology</span>Expert AI scoring</span>
+      <span style="font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:14px;color:#9333ea">lock</span>Your answers are private</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE: PRICING
+═════════════════════════════════════════════════════ -->
+<div class="page" id="page-pricing">
+  <div class="pricing-wrap" style="padding-top:48px;">
+    <div class="pricing-header">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title" style="font-size:clamp(26px,3vw,38px);margin-bottom:10px;">Simple, Transparent Pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you're ready for your next SAP role.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="plan-card">
+        <div class="plan-name" style="color:var(--ink2);">Free</div>
+        <div class="plan-price">₹0</div>
+        <div class="plan-per" style="color:var(--ink2);">Forever free</div>
+        <ul class="plan-features">
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> 5 questions per day</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Basic feedback</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Fundamentals module</li>
+          <li class="off"><span class="material-symbols-outlined" style="font-size:18px">close</span> AI Coach</li>
+          <li class="off"><span class="material-symbols-outlined" style="font-size:18px">close</span> HANA module</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="openModal('signup')">Get Started</button>
+      </div>
+      <!-- Pro -->
+      <div class="plan-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="plan-name" style="color:rgba(255,255,255,.5);">Pro</div>
+        <div class="plan-price" style="color:white;">₹799</div>
+        <div class="plan-per" style="color:rgba(255,255,255,.5);">per month</div>
+        <ul class="plan-features" style="color:rgba(255,255,255,.85);">
+          <li><span class="material-symbols-outlined" style="color:#89b4fa;font-size:18px">check_circle</span> Unlimited questions</li>
+          <li><span class="material-symbols-outlined" style="color:#89b4fa;font-size:18px">check_circle</span> Full AI Coach access</li>
+          <li><span class="material-symbols-outlined" style="color:#89b4fa;font-size:18px">check_circle</span> All modules incl. HANA</li>
+          <li><span class="material-symbols-outlined" style="color:#89b4fa;font-size:18px">check_circle</span> Progress tracking</li>
+          <li><span class="material-symbols-outlined" style="color:#89b4fa;font-size:18px">check_circle</span> PDF performance reports</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="openModal('signup')">Start Free Trial</button>
+      </div>
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div class="plan-name" style="color:var(--ink2);">Enterprise</div>
+        <div class="plan-price">Custom</div>
+        <div class="plan-per" style="color:var(--ink2);">For teams &amp; companies</div>
+        <ul class="plan-features">
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Everything in Pro</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Team dashboards</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Custom question banks</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> Dedicated support</li>
+          <li><span class="material-symbols-outlined" style="color:var(--green);font-size:18px">check_circle</span> SSO & compliance</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="alert('Contact: support@abapcoach.ai')">Contact Sales</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE: ABOUT
+═════════════════════════════════════════════════════ -->
+<div class="page" id="page-about">
+  <div class="about-wrap">
+    <div class="about-hero">
+      <div>
+        <div class="section-label">About Us</div>
+        <h2 class="section-title" style="font-size:clamp(26px,3vw,38px);margin-bottom:16px;">Built by SAP Professionals, for SAP Professionals</h2>
+        <p class="section-sub" style="margin-bottom:16px;">ABAP Coach AI was created to solve a real problem: SAP interview preparation is scattered, outdated, and never comes with expert feedback.</p>
+        <p class="section-sub">We combined 15+ years of SAP consulting experience with cutting-edge AI to give every ABAP developer a world-class interview coach — on demand, 24/7.</p>
+        <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="navigate('interview')">Try AI Coach</button>
+          <button class="btn btn-outline" onclick="navigate('pricing')">View Pricing</button>
+        </div>
+      </div>
+      <div>
+        <div style="background:var(--ink);border-radius:20px;padding:28px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;">Our Mission</div>
+          <p style="color:rgba(255,255,255,.8);font-size:15px;line-height:1.75;">"Every SAP professional deserves access to expert interview coaching — not just those who can afford a ₹5000/hr mentor. We're democratizing SAP career growth."</p>
+          <div style="margin-top:20px;display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:white;font-size:13px;">AK</div>
+            <div>
+              <div style="font-weight:700;color:white;font-size:14px;">Arjun Kumar</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.45);">Founder & CEO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-stat-row">
+      <div class="about-stat"><div class="asn">12K+</div><div class="asl">Active Users</div></div>
+      <div class="about-stat"><div class="asn">200+</div><div class="asl">ABAP Questions</div></div>
+      <div class="about-stat"><div class="asn">50+</div><div class="asl">Partner Companies</div></div>
+    </div>
+
+    <div class="team-section">
+      <div class="section-label">The Team</div>
+      <h3 class="section-title" style="font-size:24px;margin-bottom:4px;">Meet the builders</h3>
+      <div class="team-grid" style="margin-top:20px;">
+        <div class="team-card">
+          <div class="team-avatar" style="background:var(--blue);">AK</div>
+          <div class="team-name">Arjun Kumar</div>
+          <div class="team-role">Founder · 12 yrs SAP</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar" style="background:#00a86b;">PM</div>
+          <div class="team-name">Priya Mehta</div>
+          <div class="team-role">Head of Content · ex-Accenture</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar" style="background:#9333ea;">RS</div>
+          <div class="team-name">Rohan Shah</div>
+          <div class="team-role">Lead Engineer · Full-Stack</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;padding:36px;background:var(--sky);border-radius:20px;border:1px solid rgba(26,86,255,.15);text-align:center;">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--ink);margin-bottom:8px;">Questions? We'd love to hear from you.</h3>
+      <p style="color:var(--ink2);font-size:14px;margin-bottom:20px;">We read every email and respond within 24 hours.</p>
+      <a href="mailto:support@abapcoach.ai" class="btn btn-primary" style="display:inline-flex;">
+        <span class="material-symbols-outlined" style="font-size:17px">mail</span>
+        support@abapcoach.ai
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ─────── MODALS ─────── -->
+<div class="modal-overlay" id="modal-signup">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Create Free Account</div>
+        <div style="font-size:12px;color:var(--ink2);margin-top:3px;">No credit card required</div>
+      </div>
+      <button class="modal-close" onclick="closeModals()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">First Name</label><input class="form-input" type="text" placeholder="Rahul"/></div>
+      <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" type="text" placeholder="Kumar"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Work Email</label><input class="form-input" type="email" placeholder="you@company.com"/></div>
+    <div class="form-group">
+      <label class="form-label">SAP Experience</label>
+      <select class="form-select"><option>Less than 1 year</option><option>1–3 years</option><option>3–7 years</option><option>7+ years</option></select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;" onclick="closeModals()">Create Account</button>
+    <div class="form-note">Already have an account? <a href="#" onclick="openModal('signin')">Sign in</a></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-signin">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Sign In</div>
+      <button class="modal-close" onclick="closeModals()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="you@company.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;" onclick="closeModals()">Sign In</button>
+    <div class="form-note">Don't have an account? <a href="#" onclick="openModal('signup')">Sign up free</a></div>
+  </div>
+</div>
+
+<!-- ─────── JAVASCRIPT ─────── -->
+<script>
+// ── Page navigation ──────────────────────────────────
+let currentPage = 'home';
+function navigate(page) {
+  if (page === currentPage) return;
+  const oldEl = document.getElementById('page-' + currentPage);
+  const newEl = document.getElementById('page-' + page);
+  oldEl.classList.add('exit');
+  setTimeout(() => {
+    oldEl.classList.remove('active','exit');
+    newEl.classList.add('active');
+    window.scrollTo({top:0,behavior:'instant'});
+  }, 220);
+  currentPage = page;
+  // Update nav links
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.page === page);
+  });
+  document.querySelectorAll('.mob-link').forEach(l => {
+    l.classList.toggle('active', l.id === 'mob-' + page);
+  });
+}
+
+// ── Nav scroll shadow ─────────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('site-nav').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ── Mobile menu ──────────────────────────────────────
+function openMob() { document.getElementById('mob-menu').classList.add('open'); }
+function closeMob() { document.getElementById('mob-menu').classList.remove('open'); }
+function closeMobOutside(e) { if(e.target === document.getElementById('mob-menu')) closeMob(); }
+
+// ── Modals ────────────────────────────────────────────
+function openModal(id) {
+  closeModals();
+  document.getElementById('modal-' + id).classList.add('open');
+}
+function closeModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModals(); });
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) closeModals(); });
+});
+
+// ── Interview state ───────────────────────────────────
+let aiOn = false, activeTopic = 'Internal Tables', curQ = '';
+
+const QUESTIONS = {
+  'Internal Tables':[
+    {q:"Explain the difference between <strong>SORTED TABLE</strong>, <strong>HASHED TABLE</strong>, and <strong>STANDARD TABLE</strong> in ABAP. When would you choose one over the others in a real SAP project?", level:"Intermediate"},
+    {q:"How do you delete duplicate entries from an internal table without using a LOOP? Explain multiple approaches.", level:"Advanced"},
+    {q:"What is the COLLECT statement in ABAP and when would you use it over a manual LOOP + SUM approach?", level:"Intermediate"},
+    {q:"Explain the difference between READ TABLE <strong>WITH KEY</strong> and READ TABLE <strong>WITH INDEX</strong>. When does performance matter?", level:"Beginner"},
+  ],
+  'HANA Performance':[
+    {q:"Explain the <strong>Code-to-Data</strong> paradigm in SAP HANA. How does it differ from traditional ABAP programming?", level:"Advanced"},
+    {q:"What is an <strong>AMDP</strong> (ABAP Managed Database Procedure) and when would you use it over a standard SELECT?", level:"Advanced"},
+    {q:"How do you identify and fix a performance bottleneck in an ABAP report running on SAP HANA?", level:"Intermediate"},
+  ],
+  'OOP ABAP':[
+    {q:"Explain the concept of <strong>interfaces</strong> in ABAP OOP. How do they differ from abstract classes and when would you use each?", level:"Intermediate"},
+    {q:"Explain <strong>inheritance</strong> in ABAP OOP with a practical SAP use case. How do you call a superclass constructor?", level:"Intermediate"},
+    {q:"What are the visibility levels (PUBLIC, PROTECTED, PRIVATE) in ABAP classes and when should you use each?", level:"Beginner"},
+  ],
+  'ALV Reports':[
+    {q:"Compare <strong>ALV Grid (CL_GUI_ALV_GRID)</strong> with the functional ALV (REUSE_ALV_GRID_DISPLAY). When do you prefer one over the other?", level:"Intermediate"},
+    {q:"How do you add custom buttons and handle user commands in an OOP ALV report?", level:"Advanced"},
+    {q:"What is a <strong>field catalog</strong> in ALV and how do you build one dynamically at runtime?", level:"Intermediate"},
+  ],
+  'BAPI & RFC':[
+    {q:"What is the difference between a <strong>BAPI</strong> and an RFC function module? Which should you use for external system integration?", level:"Beginner"},
+    {q:"Explain <strong>COMMIT WORK</strong> and ROLLBACK WORK in the context of BAPI calls. Why is error handling critical?", level:"Intermediate"},
+  ],
+  'CDS Views':[
+    {q:"What is a <strong>CDS View</strong> in SAP? How does it differ from a traditional database view in SE11?", level:"Beginner"},
+    {q:"Explain <strong>VDM</strong> (Virtual Data Model) and how CDS views are classified — Basic, Composite, and Consumption views.", level:"Advanced"},
+    {q:"How do you use annotations in CDS views? Give examples of annotations used in Fiori development.", level:"Advanced"},
+  ],
+};
+
+function loadQ(topic) {
+  const pool = QUESTIONS[topic] || QUESTIONS['Internal Tables'];
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  curQ = pick.q.replace(/<[^>]+>/g,''); // plain text for API
+  document.getElementById('q-text').innerHTML = pick.q;
+  const lvl = document.getElementById('q-level');
+  lvl.textContent = pick.level;
+  const colors = {Beginner:'color:#00a86b',Intermediate:'color:#d97706',Advanced:'color:#ef4444'};
+  lvl.style = colors[pick.level]||colors.Intermediate;
+}
+
+function pickTopic(btn, topic) {
+  activeTopic = topic;
+  document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  loadQ(topic); clearAns(); hidePanel();
+}
+
+function nextQ() { loadQ(activeTopic); }
+
+// ── Toggle ────────────────────────────────────────────
+function onToggle(cb) {
+  aiOn = cb.checked;
+  document.getElementById('tl').textContent = aiOn ? 'AI Coach: ON' : 'AI Coach: OFF';
+  document.getElementById('tl').style.color = aiOn ? 'var(--blue)' : '';
+  document.getElementById('ts').textContent = aiOn ? 'Live feedback enabled' : 'Enable for live feedback';
+  document.getElementById('ai-banner').classList.toggle('show', aiOn);
+  document.getElementById('ic-hint').innerHTML = aiOn
+    ? '<span class="material-symbols-outlined" style="font-size:14px">psychology</span>AI will score your answer'
+    : '<span class="material-symbols-outlined" style="font-size:14px">info</span>Toggle AI Coach for live feedback';
+  const btn = document.getElementById('submit-btn');
+  document.getElementById('submit-label').textContent = aiOn ? 'Submit for AI Review' : 'Submit Answer';
+  btn.style.background = aiOn ? 'var(--blue)' : 'var(--ink)';
+  if (!aiOn) hidePanel();
+}
+
+// ── Type ──────────────────────────────────────────────
+function onType(ta) {
+  if (ta.value.length > 2000) ta.value = ta.value.slice(0,2000);
+  document.getElementById('char-count').textContent = ta.value.length + ' / 2000';
+}
+
+// ── Submit ────────────────────────────────────────────
+async function doSubmit() {
+  const ans = document.getElementById('answer-box').value.trim();
+  if (!ans) {
+    const ta = document.getElementById('answer-box');
+    ta.style.borderColor='var(--red)';
+    setTimeout(()=>ta.style.borderColor='',2000); return;
+  }
+  if (!aiOn) {
+    const hint = document.getElementById('ic-hint');
+    hint.innerHTML = '<span style="color:var(--blue);font-weight:700;">⬆ Turn on AI Coach first!</span>';
+    setTimeout(()=>{ hint.innerHTML='<span class="material-symbols-outlined" style="font-size:14px">info</span>Toggle AI Coach for live feedback'; },3000);
+    return;
+  }
+  showLoading();
+  document.getElementById('submit-btn').disabled = true;
+  try {
+    const res = await callClaude(curQ, ans, activeTopic);
+    renderFB(res);
+  } catch(e) { renderErr(e.message); }
+  finally { document.getElementById('submit-btn').disabled = false; }
+}
+
+// ── Claude API ────────────────────────────────────────
+async function callClaude(question, answer, topic) {
+  const sys = `You are a senior SAP ABAP technical interviewer with 15+ years experience at top SAP consulting firms. Respond ONLY in this exact JSON format with no markdown or preamble:
+{"overallScore":0,"technicalScore":0,"clarityScore":0,"depthScore":0,"headline":"","summary":"","strengths":["",""],"improvements":["",""],"expertInsight":"","modelAnswer":""}`;
+  const resp = await fetch("/api/feedback",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model:"claude-sonnet-4-20250514", max_tokens:1000,
+      system: sys,
+      messages:[{role:"user",content:`Topic: ${topic}\nQuestion: ${question}\nCandidate Answer: ${answer}\n\nScore 0-100 for each dimension. Be an honest interviewer.`}]
+    })
+  });
+  if(!resp.ok) {
+    const errData = await resp.json().catch(()=>({}));
+    throw new Error((errData.error?.message) || ('API error ' + resp.status));
+  }
+  const data = await resp.json();
+  const txt = data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+  return JSON.parse(txt);
+}
+
+// ── Render ────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('feedback-panel').style.display='block';
+  document.getElementById('fb-loading').style.display='block';
+  document.getElementById('fb-content').style.display='none';
+  document.getElementById('feedback-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderFB(r) {
+  document.getElementById('fb-loading').style.display='none';
+  const sc = r.overallScore||0;
+  const clr = sc>=80?'var(--green)':sc>=60?'var(--amber)':'var(--red)';
+  const ring = document.getElementById('score-ring');
+  ring.style.setProperty('--pct', sc+'%');
+  ring.style.background = `conic-gradient(${clr} 0% ${sc}%, #e5e7eb ${sc}%)`;
+  document.getElementById('score-num').textContent = sc;
+  document.getElementById('score-num').style.color = clr;
+  document.getElementById('fb-headline').textContent = r.headline||'Reviewed';
+  document.getElementById('fb-summary').textContent = r.summary||'';
+  document.getElementById('sp-tech').textContent = r.technicalScore||'-';
+  document.getElementById('sp-clarity').textContent = r.clarityScore||'-';
+  document.getElementById('sp-depth').textContent = r.depthScore||'-';
+
+  let html = '';
+  if(r.strengths?.length) html += `
+    <div class="fb-section" style="background:#edfdf6;border:1px solid #a7f3d0;">
+      <div class="fb-section-title" style="color:#065f46;"><span class="material-symbols-outlined" style="font-size:16px">thumb_up</span>What You Did Well</div>
+      <div class="fb-list">${r.strengths.map(s=>`<div class="fb-item"><span class="material-symbols-outlined" style="font-size:15px;color:#10b981;flex-shrink:0">check_circle</span>${s}</div>`).join('')}</div>
+    </div>`;
+  if(r.improvements?.length) html += `
+    <div class="fb-section" style="background:#fffbeb;border:1px solid #fde68a;">
+      <div class="fb-section-title" style="color:#92400e;"><span class="material-symbols-outlined" style="font-size:16px">lightbulb</span>Areas to Improve</div>
+      <div class="fb-list">${r.improvements.map(i=>`<div class="fb-item"><span class="material-symbols-outlined" style="font-size:15px;color:#f59e0b;flex-shrink:0">arrow_right</span>${i}</div>`).join('')}</div>
+    </div>`;
+  if(r.expertInsight) html += `
+    <div class="fb-section" style="background:#eff6ff;border:1px solid #bfdbfe;">
+      <div class="fb-section-title" style="color:#1e40af;"><span class="material-symbols-outlined" style="font-size:16px">psychology</span>What Interviewers Look For</div>
+      <div style="font-size:13px;color:#1e3a8a;line-height:1.65;">${r.expertInsight}</div>
+    </div>`;
+  if(r.modelAnswer) html += `
+    <div class="fb-section" style="background:var(--off);border:1px solid var(--border);">
+      <div class="fb-section-title" style="color:var(--ink);"><span class="material-symbols-outlined" style="font-size:16px">verified</span>Model Answer (Key Points)</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.65;">${r.modelAnswer}</div>
+    </div>`;
+
+  document.getElementById('fb-body').innerHTML = html;
+  document.getElementById('fb-content').style.display='block';
+}
+
+function renderErr(msg) {
+  document.getElementById('fb-loading').style.display='none';
+  document.getElementById('fb-body').innerHTML=`<div class="fb-section" style="background:#fff0f0;border:1px solid #fca5a5;color:#991b1b;"><strong>Connection error</strong><br/><span style="font-size:13px">${msg||'Please try again.'}</span></div>`;
+  document.getElementById('fb-headline').textContent='Error';
+  document.getElementById('fb-summary').textContent='Could not connect';
+  document.getElementById('fb-content').style.display='block';
+}
+
+function hidePanel() {
+  document.getElementById('feedback-panel').style.display='none';
+  document.getElementById('fb-loading').style.display='none';
+  document.getElementById('fb-content').style.display='none';
+}
+function clearAns() {
+  document.getElementById('answer-box').value='';
+  document.getElementById('char-count').textContent='0 / 2000';
+}
+function reattempt() { clearAns(); hidePanel(); document.getElementById('answer-box').focus(); }
+
+// ── Init ─────────────────────────────────────────────
+loadQ('Internal Tables');
+</script>
+</body>
+</html>
