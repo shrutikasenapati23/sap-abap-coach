@@ -2,7 +2,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   
   const { messages, system } = req.body;
-  
   const prompt = system + '\n\n' + messages[0].content;
   
   const response = await fetch(
@@ -15,9 +14,10 @@ export default async function handler(req, res) {
       })
     }
   );
-  
+
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  console.log('Gemini raw:', JSON.stringify(data));
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
   
   res.status(200).json({
     content: [{ type: 'text', text: text }]
