@@ -682,7 +682,7 @@ function pickTopic(btn,topic){
   btn.classList.add('on');
   loadQ(topic);clearAns();hidePanel();
 }
-function nextQ(){loadQ(activeTopic)}
+async function nextQ(){try{const res=await fetch('/api/questions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:activeTopic})});const data=await res.json();curQ=data.question;document.getElementById('q-text').innerHTML=data.question;const lvl=document.getElementById('q-level');lvl.textContent=data.level;const colors={Beginner:'color:#00a86b',Intermediate:'color:#d97706',Advanced:'color:#ef4444'};lvl.style=colors[data.level]||colors.Intermediate;}catch(e){loadQ(activeTopic);}}
 function onToggle(cb){
   aiOn=cb.checked;
   document.getElementById('tl').textContent=aiOn?'AI Coach: ON':'AI Coach: OFF';
