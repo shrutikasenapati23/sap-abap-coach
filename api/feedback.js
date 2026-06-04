@@ -5,18 +5,22 @@ export default async function handler(req, res) {
   const prompt = system + '\n\n' + messages[0].content;
   
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    'https://api.groq.com/openai/v1/chat/completions',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }]
       })
     }
   );
   const data = await response.json();
-  console.log('Gemini raw:', JSON.stringify(data));
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
+  console.log('Groq raw:', JSON.stringify(data));
+  const text = data.choices?.[0]?.message?.content ?? '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
   
   res.status(200).json({
     content: [{ type: 'text', text: text }]
