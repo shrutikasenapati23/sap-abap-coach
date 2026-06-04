@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert SAP ABAP interview coach. Evaluate the answer and respond ONLY with this exact JSON format, no extra text: {"score":85,"headline":"Good Understanding","summary":"One line summary","technical":80,"clarity":75,"depth":70,"strengths":["strength 1","strength 2"],"improvements":["improvement 1","improvement 2"]}'
+            content: 'You are an SAP ABAP interview coach. Respond ONLY with valid JSON, no markdown, no newlines inside string values. Format: {"score":85,"headline":"title","summary":"one line","technical":80,"clarity":75,"depth":70,"strengths":["s1","s2"],"improvements":["i1","i2"],"interviewerTip":"tip","modelAnswer":"answer"}'
           },
           { role: 'user', content: prompt }
         ],
@@ -27,7 +27,9 @@ export default async function handler(req, res) {
   );
   const data = await response.json();
   let text = data.choices?.[0]?.message?.content ?? '';
-  text = text.replace(/```json|```/g, '').replace(/[\x00-\x1F\x7F]/g, ' ').trim();
+  text = text.replace(/```json|```/g, '').trim();
+  text = text.replace(/[\x00-\x1F\x7F]/g, ' ');
+  text = text.replace(/\n/g, ' ');
   if (!text) text = '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
   
   res.status(200).json({
