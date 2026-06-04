@@ -14,13 +14,18 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+          { role: 'system', content: 'You must respond with valid JSON only. No markdown, no code blocks, no extra text.' },
+          { role: 'user', content: prompt }
+        ]
       })
     }
   );
   const data = await response.json();
   console.log('Groq raw:', JSON.stringify(data));
-  const text = data.choices?.[0]?.message?.content ?? '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
+  let text = data.choices?.[0]?.message?.content ?? '';
+  text = text.replace(/```json|```/g, '').trim();
+  if (!text) text = '{"score":50,"headline":"Reviewed","summary":"Answer received","technical":50,"clarity":50,"depth":50,"strengths":["Answer submitted"],"improvements":["Add more detail"]}';
   
   res.status(200).json({
     content: [{ type: 'text', text: text }]
